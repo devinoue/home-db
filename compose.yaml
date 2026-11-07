@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:18-bookworm   # マイナーバージョンまで固定推奨（例: 18.x-bookworm）
+    container_name: home-postgres
+    restart: unless-stopped
+    ports:
+      # .env 未設定なら localhost のみにバインド（安全側に倒す）
+      - "${BIND_IP:-127.0.0.1}:5432:5432"
+    environment:
+      POSTGRES_USER: pgadmin
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    secrets: [pg_password]
+    volumes:
+      # PostgreSQL 18 以降のイメージはこのパスにマウントする
+      - pgdata:/var/lib/postgresql
+    security_opt:
+      - no-new-privileges:true
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pgadmin"]
+      interval: 10s
+      retries: 5
+
+secrets:
+  pg_password:
+    file: ./secrets/pg_password.txt
+
+volumes:
+  pgdata:
